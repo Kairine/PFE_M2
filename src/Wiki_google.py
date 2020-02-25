@@ -199,7 +199,7 @@ if __name__ == '__main__':
     verify_rep('../0_data_google')
 
     URL = "https://fr.wikipedia.org/w/api.php" # l'api utilisé
-    KWS = ['Charles de Gaulle'] # la liste de noms de page à récupérer
+    KWS = ['Charles de Gaulle', 'Amélie Nothomb'] # la liste de noms de page à récupérer
     nb_url = 50
     
 
