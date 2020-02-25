@@ -7,6 +7,7 @@ import requests
 import re
 import os
 import time
+from tqdm import tqdm
 
 from bs4 import BeautifulSoup as bs
 
@@ -118,6 +119,14 @@ def sep_url(url):
         url = url[7:]
     return re.split('&sa=', url)[0] # des morceaux inutiles traînent à la fin de l'url (anti-aspiration google), on les coupe avec regex
 
+def net_url(url):
+    if 'wikipedia' in url:
+        return False
+    elif 'google' in url:
+        return False
+    else:
+        return True
+        
 def get_url_list(quest, nb_url):
     '''
     Pour chaque paragraphe, on fait une requête google pour obtenir une liste d'url
@@ -144,6 +153,8 @@ def get_url_list(quest, nb_url):
             
         url_list += [div.a['href'] for div in divs if div.a]
         url_net = list(map(sep_url, url_list))
+        url_short = list(map(sep_url, url_list))
+        url_net = list(filter(net_url, url_short))
         
         n += 10
         
@@ -162,12 +173,13 @@ def get_urls(texts, nb_url):
     '''
     url_dict = {}
     for kw, text_list in texts.items(): # pour chaque paire nom_de_page - liste_de_paragraphes
+        print('Processing {} ...'.format(kw))
         time.sleep(10)
         repname = kw2name(kw)
         reppath = os.path.join('../0_data_google/', repname)
         verify_rep(reppath) # on crée un répertoire pour chaque nom de page
         tmp = {}
-        for i, text in enumerate(text_list): # pour chaque paragraphe
+        for i, text in tqdm(enumerate(text_list), total=len(text_list)): # pour chaque paragraphe
             url_list = get_url_list(text, nb_url) # on extrait la liste d'url 
             tmp[text] = url_list
             filename = '{}.txt'.format(i+1)
