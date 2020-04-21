@@ -8,10 +8,14 @@ import re
 import os
 import time
 
+import nltk
+nltk.download('punkt')
+
 from tqdm import tqdm
 from random import uniform
 from bs4 import BeautifulSoup as bs
 from nltk.tokenize import sent_tokenize, wordpunct_tokenize
+
 
 
 def verify_rep(rep):
