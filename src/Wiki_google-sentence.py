@@ -44,9 +44,9 @@ def get_page(kw):
     kw (STR)
     page (STR): html de la page récupérée
     '''
-	
-	print('Loading Wikipedia page:', kw)
-	
+    
+    print('Loading Wikipedia page:', kw)
+    
     global URL # l'url de l'api utilisé, défini dans l'environnement
 
     PARAMS = {
@@ -198,6 +198,10 @@ def url_to_name(url):
         req_name = url.rsplit('/', maxsplit=1)[1]
     if '.' not in req_name:
         req_name += '.html'
+
+    if len(req_name) > 200:
+        _ = req_name.split('.')
+        req_name = '.'.join([_[0][:100] + _[1]])
     return req_name
 
 def get_urls(texts, nb_url):
