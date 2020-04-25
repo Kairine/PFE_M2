@@ -6,7 +6,7 @@ Plan de l'arborescence: <br>
     - ./0_data_google: exemple de sortie du scrapping google avec "Charles de Gaulle" et "Amélie Nothomb" <br>
 
 **Description de script:** <br>
-Librairies à installer: bs4, nltk<br><br>
+Librairies à installer: bs4, nltk, pandas<br><br>
 
 Le script accepte `KWS` une liste de mots clés et `nb_url` un nombre d'url à trouver par paragraphe. 
 En sortie, chaque paragraphe de chaque page Wikipédia aura un txt pour stocker les url, un fichier log pour enrigistrer les url non valides et un répertoire avec les fichiers googlés dedans. 
