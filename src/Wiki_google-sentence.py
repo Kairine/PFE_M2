@@ -8,8 +8,10 @@ import re
 import os
 import time
 
-import nltk
-nltk.download('punkt')
+import pandas as pd
+
+#import nltk
+#nltk.download('punkt')
 
 from tqdm import tqdm
 from random import uniform
@@ -224,10 +226,17 @@ def get_urls(texts, nb_url):
         reppath = os.path.join('../0_data_google/', kw2name(kw))
         verify_rep(reppath) # on crée un répertoire pour chaque nom de page
 
+        excelname = 'urls.xlsx'
+        excelpath = os.path.join(reppath, excelname)
+        df_url = pd.DataFrame()
+        
         tmp = {}
         for i, text in enumerate(text_list): # pour chaque paragraphe
-            url_list = get_url_list(text, nb_url) # on extrait la liste d'url
-            tmp[text] = url_list
+            url_list = get_url_list(text, nb_url) # on extrait la liste d'url 
+            while len(url_list) < 50:
+                url_list.append('')
+            df_url['sentence_{}'.format(i)] = url_list
+            
             filename = 'url_{}.txt'.format(i+1)
             filepath = os.path.join(reppath, filename)
             with open(filepath, 'w', encoding='utf8', newline='\n') as urlio:
@@ -259,6 +268,8 @@ def get_urls(texts, nb_url):
                     log_io.write('Status code: {}\n\n'.format(req.status_code))
 
             log_io.close()
+            
+        df_url.to_excel(excelpath, encoding='utf8')
 
         url_dict[kw] = tmp
 
