@@ -7,7 +7,7 @@
 
 # ### Préparation d'environnement
 
-# In[1]:
+# In[ ]:
 
 
 import requests
@@ -32,7 +32,7 @@ from nltk.tokenize import sent_tokenize, wordpunct_tokenize
 #nltk.download('punkt')
 
 
-# In[2]:
+# In[ ]:
 
 
 def verify_rep(rep):
@@ -51,17 +51,19 @@ def kw2name(kw):
     return re.sub('\W', '_', kw.lower())
 
 
-# In[3]:
+# In[ ]:
 
+
+output_rep = '../0_data_google_exact'
 
 verify_rep('../0_data_wiki/pages_aspirees')
 verify_rep('../0_data_wiki/textes_bruts')
-verify_rep('../0_data_google')
+verify_rep(output_rep)
 
 
 # ### Récupération de pages d'origine
 
-# In[4]:
+# In[ ]:
 
 
 def get_page(kw):
@@ -101,7 +103,7 @@ def get_page(kw):
 
 # ### Nettoyage de text
 
-# In[5]:
+# In[ ]:
 
 
 def span_filter(span):
@@ -153,7 +155,7 @@ def parse_wiki_page(kw_page):
     '''
     
     kw, page = kw_page
-    soup = bs(page) # on parse la page
+    soup = bs(page, 'html5lib') # on parse la page
     p_list = soup.find_all('p') # on récupère toutes les p
     text_list = list(map(get_text, p_list)) # on nettoie les balises et on obtient les textes
     text_list_net = list(filter(lambda x: x, text_list)) # on enlève les textes vides
@@ -179,7 +181,7 @@ def parse_wiki_page(kw_page):
 
 # ## Scrap Google
 
-# In[7]:
+# In[ ]:
 
 
 def sep_url(url):
@@ -220,7 +222,7 @@ def get_url_list(quest, nb_url):
     while n < nb_url:
         gap = uniform(1.0,10.0)
         time.sleep(gap)
-        url = "http://www.google.fr/search?custom?hl=fr&q={}&start={}".format(quest, n)
+        url = "http://www.google.fr/search?custom?hl=fr&q={}&start={}".format('\"{}\"'.format(quest), n)
         response = requests.get(url)
         data = response.text
 
@@ -266,6 +268,7 @@ def get_urls(texts, nb_url):
     output:
     url_dict (DICT): {nom_de_page: {phrase1:[url1, url2...]...}}
     '''
+    global output_rep
     
     url_dict = {}
     
@@ -274,7 +277,7 @@ def get_urls(texts, nb_url):
         print("{}: {} texts\nStarting in {}s...".format(kw, len(text_list), round(gap, 3)))
         time.sleep(gap)
         
-        reppath = os.path.join('../0_data_google/', kw2name(kw))
+        reppath = os.path.join(output_rep, kw2name(kw))
         verify_rep(reppath) # on crée un répertoire pour chaque nom de page
         
         excelname = 'urls.xlsx'
@@ -306,7 +309,7 @@ def get_urls(texts, nb_url):
             log_io = open(log_path, 'w', encoding='utf8', newline='\n') 
             
             # on lit chaque url
-            for url in tqdm(url_list, total=len(url_list), desc="Processing urls {}...".format(i+1)):
+            for url in tqdm(url_list, total=len(url_list), desc="Processing text {}...".format(i+1)):
                 try:
                     req = requests.get(url)
                 except: # adresse non valide
