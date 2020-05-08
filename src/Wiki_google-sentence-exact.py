@@ -51,16 +51,6 @@ def kw2name(kw):
     return re.sub('\W', '_', kw.lower())
 
 
-# In[ ]:
-
-
-output_rep = '../0_data_google_exact'
-
-verify_rep('../0_data_wiki/pages_aspirees')
-verify_rep('../0_data_wiki/textes_bruts')
-verify_rep(output_rep)
-
-
 # ### Récupération de pages d'origine
 
 # In[ ]:
@@ -167,7 +157,7 @@ def parse_wiki_page(kw_page):
         for sent in sent_tokenize(text):
             if len(wordpunct_tokenize(sent)) <= 13:
                 print('Invalid sentence:', sent)
-            if re.match('Erreur de référence', sent):
+            elif re.match('Erreur de référence', sent):
                 print('Invalid sentence:', sent)
             else:
                 sent_list.append(sent)
@@ -253,8 +243,7 @@ def url_to_name(url):
         _ = req_name.split('.')
         req_name = '.'.join([_[0][:100] + _[1]])
         
-    while not req_name[0].isalnum(): # *h.html
-        req_name = req_name[1:]
+    req_name = re.sub('[\\/*?<>|\":]', '', req_name)
     return req_name
 
 def get_urls(texts, nb_url):
@@ -279,41 +268,48 @@ def get_urls(texts, nb_url):
         
         reppath = os.path.join(output_rep, kw2name(kw))
         verify_rep(reppath) # on crée un répertoire pour chaque nom de page
-        
-        excelname = 'urls.xlsx'
+
+        excelname = '{}_urls.xlsx'.format(kw2name(kw))
         excelpath = os.path.join(reppath, excelname)
-        df_url = pd.DataFrame()
-        df_stats = pd.DataFrame(index=['text', 'nb_url', 'longueur_text'])
+
+        df_stats = pd.DataFrame(index=['text', 'nb_url', 'nb_invalid','longueur_text'])
         
+        dfs = []
         tmp = {}
+        
         for i, text in enumerate(text_list): # pour chaque paragraphe
             url_list = get_url_list(text, nb_url) # on extrait la liste d'url 
-            df_stats['sentence_{}'.format(i)] = [text, len(url_list), len(wordpunct_tokenize(text))]
+
             while len(url_list) < 51:
                 url_list.append('')
-            df_url['sentence_{}'.format(i)] = url_list
-            
-            
+            df_url = pd.DataFrame(columns=['url', 'copier_coller', 'longueur', 'type', 'domaine', 'citer_source', 'licence'])
+            df_url = df_url.assign(url=url_list)
+
             tmp[text] = url_list
             filename = 'url_{}.txt'.format(i+1)
             filepath = os.path.join(reppath, filename)
             with open(filepath, 'w', encoding='utf8', newline='\n') as urlio:
                 urlio.write('\n'.join(url_list)) # on écrit la liste en local
-                
+
             # stocker le contenu des url en local
             url_rep = os.path.join(reppath, str(i+1))
             verify_rep(url_rep) # on crée le répertoire de sortie
-            
+
             # fichier log pour chaque paragraphe
             log_path = os.path.join(reppath, 'log_{}.txt'.format(i+1))
             log_io = open(log_path, 'w', encoding='utf8', newline='\n') 
-            
+
+            invalid = 0
+
             # on lit chaque url
-            for url in tqdm(url_list, total=len(url_list), desc="Processing text {}...".format(i+1)):
+            for url in tqdm(url_list, total=len(url_list), desc="Processing text {}...".format(i+1)): 
                 try:
                     req = requests.get(url)
                 except: # adresse non valide
                     log_io.write('Invalid url: {}\n\n'.format(url))
+                    url_id = url_list.index(url)
+                    df_url.iloc[url_id, 1] = 'Invalid'
+                    invalid += 1
                     continue
                 if req.status_code == 200: # connexion au serveur aboutie
                     req_name = url_to_name(url)
@@ -323,17 +319,26 @@ def get_urls(texts, nb_url):
                 else: # connexion au serveur non aboutie
                     log_io.write('Invalid url: {}\n'.format(url))
                     log_io.write('Status code: {}\n\n'.format(req.status_code))
-            
+                    url_id = url_list.index(url)
+                    df_url.iloc[url_id, 1] = 'Invalid'
+                    invalid += 1
+
+            df_stats['text_{}'.format(i)] = [text, len(url_list), invalid, len(wordpunct_tokenize(text))]
             log_io.close()
-        
+            dfs.append(df_url)
+
+        # écriture excel
         with pd.ExcelWriter(excelpath) as writer:
-            df_url.to_excel(writer, sheet_name='liste_url', encoding='utf8')
+            for i, df in enumerate(dfs):
+                df.to_excel(writer, sheet_name='text_{}'.format(i), encoding='utf8')
             df_stats.to_excel(writer, sheet_name='stats', encoding='utf8')
 
-        pkl_path = os.path.join(reppath, '{}.pkl'.format(kw))
+        # écriture binaire
+        pkl_path = os.path.join(reppath, '{}.pkl'.format(kw2name(kw)))
         with open(pkl_path, 'wb') as pkl_io:
             pickle.dump(tmp, pkl_io)
             
+        # mise à jour url_dict
         url_dict[kw] = tmp
         
     return url_dict
@@ -341,6 +346,12 @@ def get_urls(texts, nb_url):
 
 # In[ ]:
 
+
+output_rep = '../0_data_google_exact'
+
+verify_rep('../0_data_wiki/pages_aspirees')
+verify_rep('../0_data_wiki/textes_bruts')
+verify_rep(output_rep)
 
 URL = "https://fr.wikipedia.org/w/api.php" # l'api utilisé
 
