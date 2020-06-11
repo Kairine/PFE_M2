@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Scrap Wikipédia
-# 
-# Langue étudiée: français
+# # Scrapping Wikipédia Google : requêtes exactes
 
-# ### Préparation d'environnement
+# ## 1. Préparation d'environnement
 
 # In[ ]:
 
@@ -18,6 +16,7 @@ import pickle
 
 from random import uniform
 from tqdm import tqdm
+from collections import Counter, defaultdict
 
 # lib à installer
 import pandas as pd
@@ -51,7 +50,8 @@ def kw2name(kw):
     return re.sub('\W', '_', kw.lower())
 
 
-# ### Récupération de pages d'origine
+# ## 2. Récupération du contenu Wikipédia
+# ### 2.1. Scrapping avec API Wikipédia
 
 # In[ ]:
 
@@ -67,9 +67,9 @@ def get_page(kw):
     kw (STR)
     page (STR): html de la page récupérée
     '''
-    print('Loading Wikipedia page:', kw)
-    
     global URL # l'url de l'api utilisé, défini dans l'environnement
+    
+    print('Loading Wikipedia page:', kw)
     
     PARAMS = {
         "action": "parse", # l'api parse le contenu de la page et renvoie le text
@@ -91,7 +91,7 @@ def get_page(kw):
     return kw, page
 
 
-# ### Nettoyage de text
+# ### 2.2. Nettoyage du contenu Wikipédia
 
 # In[ ]:
 
@@ -152,6 +152,7 @@ def parse_wiki_page(kw_page):
     
     # on filtre les phrases trop courtes 
     sent_list = []
+    
     #_ = [sent_list.append(sent) for text in text_list_net for sent in sent_tokenize(text) if len(wordpunct_tokenize(sent)) > 10]
     for text in text_list_net:
         for sent in sent_tokenize(text):
@@ -169,14 +170,14 @@ def parse_wiki_page(kw_page):
     return kw, sent_list
 
 
-# ## Scrap Google
+# ## 3. Scrap Google
 
 # In[ ]:
 
 
 def sep_url(url):
     '''
-    Nettoyage d'url
+    Mise en forme d'url
     '''
     if not url.startswith('http'): # des fois l'url aspiré commence par /url?p=, on coupe donc cette partie
         url = url[7:]
@@ -186,6 +187,9 @@ def sep_url(url):
     return url
 
 def net_url(url):
+    '''
+    Filtrage des urls: on ne garde pas les urls wikipédia, google et youtube
+    '''
     if 'wikipedia' in url:
         return False
     elif 'google' in url:
@@ -197,7 +201,7 @@ def net_url(url):
 
 def get_url_list(quest, nb_url):
     '''
-    Pour chaque phrase, on fait une requête google pour obtenir une liste d'url
+    Fonction scrapping Google: Pour chaque phrase, on fait une requête google pour obtenir une liste d'url
     
     input:
     quest (STR): phrase à chercher
@@ -210,11 +214,15 @@ def get_url_list(quest, nb_url):
     url_list = []
     
     while n < nb_url:
+        # intervalle entre requêtes
         gap = uniform(1.0,10.0)
         time.sleep(gap)
+        
         url = "http://www.google.fr/search?custom?hl=fr&q={}&start={}".format('\"{}\"'.format(quest), n)
         response = requests.get(url)
         data = response.text
+        with open('tmp.html', 'w', encoding='utf8') as tmp:
+            tmp.write(data)
 
         soup = bs(data, 'html.parser')
         div_main = soup.find('div', attrs={'id':'main'})
@@ -228,23 +236,6 @@ def get_url_list(quest, nb_url):
         
     return url_net
 
-def url_to_name(url):
-    if re.search('.*archives-ouvertes.*document', url):
-        req_name = url.rsplit('/', maxsplit=2)[1]
-        req_name += '.pdf'
-    elif url.endswith('/'):
-        req_name = url.rsplit('/', maxsplit=2)[1]
-    else:
-        req_name = url.rsplit('/', maxsplit=1)[1]
-    if '.' not in req_name:
-        req_name += '.html'
-        
-    if len(req_name) > 150:
-        _ = req_name.split('.')
-        req_name = '.'.join([_[0][:100] + _[1]])
-        
-    req_name = re.sub('[\\/*?<>|\":]', '', req_name)
-    return req_name
 
 def get_urls(texts, nb_url):
     '''
@@ -262,85 +253,108 @@ def get_urls(texts, nb_url):
     url_dict = {}
     
     for kw, text_list in texts.items(): # pour chaque paire nom_de_page - liste_de_paragraphes
+        # intervalle entre requêtes
         gap = uniform(1.0,10.0)
         print("{}: {} texts\nStarting in {}s...".format(kw, len(text_list), round(gap, 3)))
         time.sleep(gap)
         
+        # on crée un répertoire pour chaque nom de page
         reppath = os.path.join(output_rep, kw2name(kw))
-        verify_rep(reppath) # on crée un répertoire pour chaque nom de page
+        verify_rep(reppath) 
 
         excelname = '{}_urls.xlsx'.format(kw2name(kw))
         excelpath = os.path.join(reppath, excelname)
-
-        df_stats = pd.DataFrame(index=['text', 'nb_url', 'nb_invalid','longueur_text'])
         
-        dfs = []
-        tmp = {}
+        dfs = [] # liste de tableaux 
+        tmp = {} # données binaires
         
-        for i, text in enumerate(text_list): # pour chaque paragraphe
+        for i, text in enumerate(text_list): # pour chaque phrase
             url_list = get_url_list(text, nb_url) # on extrait la liste d'url 
 
             while len(url_list) < 51:
                 url_list.append('')
             df_url = pd.DataFrame(columns=['url', 'copier_coller', 'longueur', 'type', 'domaine', 'citer_source', 'licence'])
             df_url = df_url.assign(url=url_list)
+            dfs.append(df_url)
 
+            # urls stockés en txt local
             tmp[text] = url_list
             filename = 'url_{}.txt'.format(i+1)
             filepath = os.path.join(reppath, filename)
             with open(filepath, 'w', encoding='utf8', newline='\n') as urlio:
                 urlio.write('\n'.join(url_list)) # on écrit la liste en local
 
-            # stocker le contenu des url en local
-            url_rep = os.path.join(reppath, str(i+1))
-            verify_rep(url_rep) # on crée le répertoire de sortie
-
-            # fichier log pour chaque paragraphe
-            log_path = os.path.join(reppath, 'log_{}.txt'.format(i+1))
-            log_io = open(log_path, 'w', encoding='utf8', newline='\n') 
-
-            invalid = 0
-
-            # on lit chaque url
-            for url in tqdm(url_list, total=len(url_list), desc="Processing text {}...".format(i+1)): 
-                try:
-                    req = requests.get(url)
-                except: # adresse non valide
-                    log_io.write('Invalid url: {}\n\n'.format(url))
-                    url_id = url_list.index(url)
-                    df_url.iloc[url_id, 1] = 'Invalid'
-                    invalid += 1
-                    continue
-                if req.status_code == 200: # connexion au serveur aboutie
-                    req_name = url_to_name(url)
-                    req_path = os.path.join(url_rep, req_name)
-                    with open(req_path, 'wb') as req_io:
-                        req_io.write(req.content)
-                else: # connexion au serveur non aboutie
-                    log_io.write('Invalid url: {}\n'.format(url))
-                    log_io.write('Status code: {}\n\n'.format(req.status_code))
-                    url_id = url_list.index(url)
-                    df_url.iloc[url_id, 1] = 'Invalid'
-                    invalid += 1
-
-            df_stats['text_{}'.format(i)] = [text, len(url_list), invalid, len(wordpunct_tokenize(text))]
-            log_io.close()
-            dfs.append(df_url)
-
-        # écriture excel
+        # urls to excel
         with pd.ExcelWriter(excelpath) as writer:
             for i, df in enumerate(dfs):
-                df.to_excel(writer, sheet_name='text_{}'.format(i), encoding='utf8')
-            df_stats.to_excel(writer, sheet_name='stats', encoding='utf8')
+                df.to_excel(writer, sheet_name='text_{}'.format(i+1), encoding='utf8')
 
-        # écriture binaire
+        # données binaires en local
         pkl_path = os.path.join(reppath, '{}.pkl'.format(kw2name(kw)))
         with open(pkl_path, 'wb') as pkl_io:
-            pickle.dump(tmp, pkl_io)
-            
-        # mise à jour url_dict
-        url_dict[kw] = tmp
+            pickle.dump(tmp, pkl_io) 
         
+    return url_dict
+
+
+def pkl_to_stats(output_rep):
+    '''
+    Fonction permettant de fusionner les urls dans un seul fichier
+    '''
+    for name in os.listdir(output_rep):
+        corpus_path = os.path.join(output_rep, name)
+        print('Processing', corpus_path)
+        if '{}_stats.xlsx'.format(name) not in os.listdir(corpus_path): # pour garder les résultats déjà faits
+            
+            # charger les données pkl
+            datapath = os.path.join(corpus_path, '{}.pkl'.format(name))
+            with open(datapath, 'rb') as pklio:
+                data = pickle.load(pklio)
+
+            # compter le nombre d'occurrences
+            c = Counter()
+            _ = [c.update(urls) for urls in data.values()]
+            del c['']
+
+            # counter to df
+            c_ = c.most_common()
+            df_counts = pd.DataFrame(columns=['url', 'nb_occur', 'copier_coller', 'degré_cc', 'longueur', 'type', 'domaine', 'citer_source', 'licence', 'misc'])
+            df_counts = df_counts.assign(url=[p[0] for p in c_])
+            df_counts = df_counts.assign(nb_occur=[p[1] for p in c_])
+
+            # df to excel
+            statpath = os.path.join(corpus_path, '{}_stats.xlsx'.format(name))
+            with pd.ExcelWriter(statpath) as writer:
+                df_counts.to_excel(writer, sheet_name='comptage_url', encoding='utf8')
+                
+    return True
+
+
+# ## 4. Main
+
+# In[ ]:
+
+
+def main(KWS, nb_url, output_rep):
+    '''
+    Fonction principale
+    '''
+    url_dict = {}
+
+    pages = dict(map(get_page, KWS)) 
+    # on applique la fonction get_page à tous les éléments de KWS, le résultat est renvoyé sous forme de dictionnaire
+    # dictionnaire {nom_de_page:html_de_page}
+
+    print('\nParsing Wikipedia pages...\n')
+    texts = dict(map(parse_wiki_page, pages.items()))
+    # on applique la fonction parse_page à chaque item du dictionnaire pages, et on récupère le résultat sous forme de dictionnaire
+    # texts: {nom_de_page: list(phrase1, phrase2...)}
+
+    print('\n')
+    url_dict.update(get_urls(texts, nb_url))
+    
+    pkl_to_stats(output_rep)
+    
     return url_dict
 
 
@@ -348,34 +362,26 @@ def get_urls(texts, nb_url):
 
 
 output_rep = '../0_data_google_exact'
+verify_rep(output_rep)
 
 verify_rep('../0_data_wiki/pages_aspirees')
 verify_rep('../0_data_wiki/textes_bruts')
-verify_rep(output_rep)
 
 URL = "https://fr.wikipedia.org/w/api.php" # l'api utilisé
 
 KWS = [
-    'Charles de Gaulle',
+    'Arlette Laguiller',
     'Pirates des Caraïbes : Jusqu\'au bout du monde',
     'À la recherche du temps perdu',
     'Alchimie',
     'Le Jour de Qingming au bord de la rivière'
 ]
 
-
-url_dict = {}
-
-pages = dict(map(get_page, KWS)) 
-# on applique la fonction get_page à tous les éléments de KWS, le résultat est renvoyé sous forme de dictionnaire
-# dictionnaire {nom_de_page:html_de_page}
-
-print('\nParsing Wikipedia pages...\n')
-texts = dict(map(parse_wiki_page, pages.items()))
-# on applique la fonction parse_page à chaque item du dictionnaire pages, et on récupère le résultat sous forme de dictionnaire
-# texts: {nom_de_page: list(paragraphe1, paragraphe2...)}
-
 nb_url = 50
-print('\n')
-url_dict.update(get_urls(texts, nb_url))
+
+
+# In[ ]:
+
+
+main(KWS, nb_url, output_rep)
 
