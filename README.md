@@ -6,7 +6,8 @@ Ceci est le répertoire git du projet de fin d'étude M2 TAL DEFI. <br><br>
     - ./0_data_wiki: (DEPRECATED) exemple de sortie du scrapping wikipédia avec "Charles de Gaulle" et "Amélie Nothomb" <br>
     - ./0_data_google: (DEPRECATED) exemple de sortie du scrapping google avec "Charles de Gaulle" et "Amélie Nothomb" <br>
     - ./1_annotations: deux fichiers pour chaque mot clé: stats.xlsx avec les annotations manuelles brutes, .pkl avec les données binaires de correspondance phrase-urls google <br>
-    - ./1_annotations_net: trois fichiers pour chaque mot clé: stats.xlsx avec les annotations uniformisées et centralisées, urls.xlsx avec les annotations redistribuées aux urls de chaque phrase, .pkl avec les données binaires de correspondance phrase-urls google 
+    - ./1_annotations_net: trois fichiers pour chaque mot clé: stats.xlsx avec les annotations uniformisées et centralisées, urls.xlsx avec les annotations redistribuées aux urls de chaque phrase, .pkl avec les données binaires de correspondance phrase-urls google <br>
+    - ./1_statistiques: les analyses statistiques effectuées sur l'ensemble de données
     
 
 ## Utilisation de script
