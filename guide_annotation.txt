@@ -1,0 +1,54 @@
+GUIDE D'ANNOTATION
+
+L'annotation s'organise au tour de 7 champs d'informations.
+
+1. Copier_coller
+	On vérifie d'abord la présence du copier-coller. Trois valeurs possibles:
+		Oui: il existe du copier-coller, quel que soit la forme.
+		Non: il n'existe pas de copier-coller.
+		Invalid: la page ne s'ouvre pas ou ne s'affiche pas correctement. 
+
+	Les pages liées à toute la famille Wikipédia ne sont pas considérées comme avoir copié le contenu. La seule présence de quelques mots clés ne constitue pas non plus du copier-coller.
+	En cas de non copier-coller ou de page invalid, on ne remplit plus les 6 autres champs.
+	
+2. Degré_cc
+	On regarde la forme du copier-coller. Deux options:
+		Exacte: le contenu wikipédia a été copié sans aucune modification.
+		Reformulé: le contenu Wikipédia a été reformulé.
+		
+3. Longueur
+	On décrit la longueur du contenu copié. Quatre valeurs possibles:
+		Phrase: seulement la phrase requêtée est copiée.
+		Partie d'intro: une partie de l'introduction est copiée, que ce soit quelques phrases ou tout un paragraphe.
+		Toute l'intro: toute l'introduction est copiée.
+		Tout l'article: tout l'article Wikipédia est copié.
+		
+4. Type
+	On classifie la page web selon une grille de 11 classes:
+		- Commerce: site de commerce. eg: amazon
+		- Site vitrine: site présentant un service ou un produit d'un organisme sans entrer dans l'aspect commercial. eg: présentation du programme d'une agence de voyage
+		- Blog: page web avec un texte structuré qui prend la forme d'un article. 
+		- Réseau social: page web qui contient principalement du texte non structuré, spontané.
+		- Scolaire: site d'aide aux devoirs, de dépôts de ressources scolaires, etc.
+		- Universitaire: site officiel d'université, typiquement les pages présentant un domaine de recherche ou un thèse doctorale
+		- Site instutioinnel: site officiel d'un institut. eg: gov.fr
+		- Site d'information: site journaux mainstream. eg: lemonde.fr
+		- Centre de documentation: site des bibliothèques et des médiathèques. 
+		- Base de données: base de données autre que les bibliothèques. eg: annuaires, site d'anniversaire des célèbres
+		- Associée à Wikipédia: page web associée à Wikipédia mais ne fait pas partie de la famille Wikipédia.
+		
+	Concernant des sites proposant un service de blog ou de présentation (eg: WordPress, Prezi): on les classe en fonction du contenu.
+	
+5. Domaine
+	On indique le domaine auquel appartient le mot clé. Cinq domaines étudiés:
+		- Cinéma
+		- Littérature
+		- Oeuvre d'art
+		- Terme scientifique
+		- Personnage politique
+
+6. Source
+	On indique si la page web a cité la source du contenu. Annotation binaire: oui/non
+	
+7. Licence
+	On indique si la page web a cité la licence sous laquelle le contenu est soumis. Annotation binaire: oui/non
